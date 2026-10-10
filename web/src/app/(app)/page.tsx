@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Activity, Baby, CalendarDays, ClipboardList, Container, Eye, EyeOff, Microscope } from "lucide-react";
 import { Badge, Button, Card, DataTable, PageHeader, Select, Spinner } from "@/components/ui";
+import { AreaTrend, Donut, statusColor, type Point } from "@/components/charts";
 import { useQ } from "@/lib/q";
 import { supabase } from "@/lib/supabase";
 import { endOfDay, fmtDate, startOfDay } from "@/lib/util";
@@ -74,6 +75,18 @@ export default function Dashboard() {
   const iuiTotal = stats.byProc.find((p) => /^IUI/i.test(p.procedure));
   const convertedCount = stats.iuiFailed.filter(stats.converted).length;
 
+  const charts = useMemo(() => {
+    const cy = cycles.data ?? [];
+    const ml = (ym: string) => { const [y, m] = ym.split("-"); return `${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][+m - 1]} ${y.slice(2)}`; };
+    const months = new Map<string, number>();
+    cy.forEach((c) => { const ym = (c.start_date ?? "").slice(0, 7); if (ym) months.set(ym, (months.get(ym) ?? 0) + 1); });
+    const trend: Point[] = [...months.entries()].sort((a, b) => a[0].localeCompare(b[0])).map(([k, v]) => ({ label: ml(k), value: v }));
+    const st = new Map<string, number>();
+    cy.forEach((c) => st.set(c.status, (st.get(c.status) ?? 0) + 1));
+    const status: Point[] = [...st.entries()].map(([label, value]) => ({ label, value }));
+    return { trend, status };
+  }, [cycles.data]);
+
   return (
     <>
       <PageHeader title="IVF Dashboard & 90 Day Conversion" subtitle="Live figures from recorded cycles and outcomes"
@@ -86,6 +99,12 @@ export default function Dashboard() {
         <Tile label="Embryos in culture" value={culture} href="/worklists/monitor-embryos" icon={Microscope} tone="info" />
         <Tile label="Items in storage" value={stored} href="/worklists/vitrified-embryos" icon={Container} tone="ok" />
       </div>
+      {!(cycles.isLoading && !cycles.data) && (cycles.data?.length ?? 0) > 0 && (
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <Card title="Cycles started per month"><AreaTrend data={charts.trend} height={200} /></Card>
+          <Card title="Cycles by status"><Donut data={charts.status} height={200} colorFn={(p) => statusColor(p.label)} /></Card>
+        </div>
+      )}
       {cycles.isLoading && !cycles.data ? <Spinner /> : (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card title="IUI Treatment Performance" actions={<Badge tone="brand">Summary By: Procedure</Badge>}>

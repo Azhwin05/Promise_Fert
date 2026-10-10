@@ -11,6 +11,7 @@ import { EmbryoTab } from "@/components/cycle/embryo";
 import { StorageTab } from "@/components/cycle/storage";
 import { ConsentPanel } from "@/components/consent";
 import { CounsellingPanel } from "@/components/counselling";
+import { Funnel } from "@/components/charts";
 import { refresh, saveRow, useQ } from "@/lib/q";
 import { supabase } from "@/lib/supabase";
 import { CYCLE_STATUS } from "@/lib/consts";
@@ -85,9 +86,23 @@ export default function CyclePage() {
 function Overview({ c }: { c: CycleFull }) {
   const opu = useQ<Opu | null>(`opu:${c.id}`, () => supabase.from("opu").select("*").eq("cycle_id", c.id).maybeSingle() as never);
   const out = useQ<Outcome[]>(`outcomes:${c.id}`, () => supabase.from("outcomes").select("*").eq("cycle_id", c.id).order("created_at", { ascending: false }) as never);
+  const emb = useQ<{ status: string }[]>(`emb-counts:${c.id}`, () => supabase.from("embryos").select("status, fertilisations!inner(cycle_id)").eq("fertilisations.cycle_id", c.id) as never);
   const o = opu.data;
   const last = out.data?.[0];
   const stat = (label: string, v: number | null | undefined) => <KV label={label}>{v ?? ""}</KV>;
+
+  const embTotal = emb.data?.length ?? null;
+  const transferred = (emb.data ?? []).filter((e) => e.status === "transferred").length;
+  const retrieved = (o?.mature_oocytes != null || o?.immature_oocytes != null)
+    ? (o?.mature_oocytes ?? 0) + (o?.immature_oocytes ?? 0) : o?.embryos_obtained ?? null;
+  const funnel = [
+    { label: "Oocytes retrieved", value: retrieved },
+    { label: "Mature (MII)", value: o?.metaphase_ii ?? o?.mature_oocytes },
+    { label: "Normal fert. (2PN)", value: o?.fert_2pn },
+    { label: "Embryos", value: o?.embryos_obtained ?? embTotal },
+    { label: "Transferred", value: emb.data ? transferred : null },
+    { label: "Clinical pregnancy", value: last ? (last.clinical_pregnancy ? 1 : last.pregnancy ? 1 : 0) : null },
+  ].filter((s) => s.value != null) as { label: string; value: number }[];
   return (
     <div className="grid gap-4 lg:grid-cols-2">
       <Card title="Treatment">
@@ -105,6 +120,9 @@ function Overview({ c }: { c: CycleFull }) {
           {stat("Metaphase II", o?.metaphase_ii)}{stat("Metaphase I", o?.metaphase_i)}{stat("Microinjected", o?.microinjected)}
           {stat("Normal Fertilisation (2 PN)", o?.fert_2pn)}{stat("Abnormal (1PN)", o?.fert_1pn)}{stat("Abnormal (>= 3PN)", o?.fert_3pn)}
         </dl>
+      </Card>
+      <Card title="Treatment funnel" className="lg:col-span-2">
+        <Funnel stages={funnel} />
       </Card>
       <Card title="Latest outcome" className="lg:col-span-2">
         {last ? (

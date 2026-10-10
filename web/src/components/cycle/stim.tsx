@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { Plus, Repeat } from "lucide-react";
 import { Button, Card, Empty, Field, Input, Modal, Spinner, Textarea, useToast } from "../ui";
+import { StimResponse, follicleCount } from "../charts";
 import { refresh, saveRow, useQ } from "@/lib/q";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
@@ -77,7 +78,15 @@ export function StimTab({ cycle }: { cycle: CycleFull }) {
   const setMed = (n: string, k: keyof Med, v: string) => setD((s) => s && { ...s, meds: { ...s.meds, [n]: { ...s.meds[n], [k]: v } } });
   const th = "whitespace-nowrap px-3 py-2.5 text-xs font-medium uppercase tracking-wide text-muted";
 
+  const chartData = days.map((x) => ({
+    day: x.day_no,
+    follicles: follicleCount(x.right_follicles) + follicleCount(x.left_follicles),
+    endo: x.endo_thickness_mm, e2: x.e2, p4: x.p4,
+  }));
+
   return (
+    <div className="space-y-4">
+    {days.length > 0 && <Card title="Stimulation response"><StimResponse data={chartData} /></Card>}
     <Card title="IVF Stimulation Monitoring" actions={<Button size="sm" variant="primary" onClick={openNew}><Plus size={16} /> Record next day</Button>}>
       {isLoading && !data ? <Spinner /> : days.length === 0 ? <Empty>No stimulation days recorded.</Empty> : (
         <div className="overflow-x-auto rounded-lg border border-line">
@@ -154,5 +163,6 @@ export function StimTab({ cycle }: { cycle: CycleFull }) {
         )}
       </Modal>
     </Card>
+    </div>
   );
 }
