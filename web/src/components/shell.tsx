@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import {
   Activity, BarChart3, Baby, CalendarDays, ClipboardList, Container, Download, FileCheck, FileText, FlaskConical, Flame,
@@ -42,6 +42,7 @@ const save = (k: string, v: unknown) => { try { localStorage.setItem(k, JSON.str
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname();
+  const sp = useSearchParams();
   const router = useRouter();
   const { profile, can, signOut } = useAuth();
   const [drawer, setDrawer] = useState(false);
@@ -84,7 +85,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
   };
   const toggleFav = (href: string) => setFavs((f) => { const n = f.includes(href) ? f.filter((x) => x !== href) : [...f, href]; save("pf.favs", n); return n; });
 
-  const active = (href: string) => (base(href) === "/" ? path === "/" : path.startsWith(base(href)));
+  // Query-aware active state: the single best-matching nav item wins, so items that share a
+  // path but differ by query (e.g. Settings vs Setup) never both highlight.
+  const activeHref = useMemo(() => {
+    let best: string | null = null, bestScore = -1;
+    for (const i of items) {
+      const [b, qs] = i.href.split("?");
+      const pathOk = b === "/" ? path === "/" : path === b || path.startsWith(b + "/");
+      if (!pathOk) continue;
+      let score = 1;
+      if (qs) {
+        const params = new URLSearchParams(qs);
+        let ok = true;
+        params.forEach((v, k) => { if (sp.get(k) !== v) ok = false; });
+        if (!ok) continue;
+        score = 1 + Array.from(params.keys()).length;
+      }
+      if (score > bestScore) { bestScore = score; best = i.href; }
+    }
+    return best;
+  }, [items, path, sp]);
+  const active = (href: string) => href === activeHref;
   const fl = filter.trim().toLowerCase();
 
   const navItem = (i: NavItem, keyPrefix = "") => {

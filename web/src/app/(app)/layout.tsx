@@ -6,9 +6,9 @@ import { Spinner } from "@/components/ui";
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AuthGate>
-      <Shell>
-        <Suspense fallback={<Spinner />}>{children}</Suspense>
-      </Shell>
+      <Suspense fallback={<Spinner />}>
+        <Shell>{children}</Shell>
+      </Suspense>
     </AuthGate>
   );
 }
