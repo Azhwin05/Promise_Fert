@@ -10,6 +10,7 @@ import {
 import { NAV, type NavItem } from "@/lib/nav";
 import { useAuth } from "@/lib/auth";
 import { cx, ToastProvider } from "./ui";
+import { Logo, Mark } from "./logo";
 
 type Tab = { href: string; label: string };
 type WS = { setTitle: (t: string) => void };
@@ -109,12 +110,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   };
 
   const brandBlock = (
-    <Link href="/" className="flex items-center gap-2.5 px-4 pb-3 pt-4">
-      <img src="/icon.svg" alt="" className="size-9 rounded-[10px]" />
-      <div className="leading-tight">
-        <div className="text-[14.5px] font-semibold tracking-tight text-white">Promise Fertility</div>
-        <div className="text-[10.5px] font-medium uppercase tracking-[0.14em] text-[color:var(--nav-head)]">IVF&nbsp;·&nbsp;HMIS</div>
-      </div>
+    <Link href="/" className="block px-4 pb-3 pt-4 text-white">
+      <Logo />
     </Link>
   );
 
@@ -147,7 +144,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const rail = (
     <nav aria-label="Primary" className="flex h-full flex-col items-center bg-[var(--nav-bg)] py-3">
-      <Link href="/" className="mb-3"><img src="/icon.svg" alt="Promise Fertility" className="size-9 rounded-[10px]" /></Link>
+      <Link href="/" className="mb-3 text-white"><Mark className="size-9" /></Link>
       <div className="nav-scroll flex-1 overflow-y-auto">
         <ul className="flex flex-col items-center gap-1">
           {items.map((i) => {

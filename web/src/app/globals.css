@@ -13,12 +13,12 @@
   --line-strong: #d7dde3;
 
   /* Accent — deep emerald, used sparingly (links, active, focus) */
-  --brand: #0a6b5a;
-  --brand-strong: #075244;
+  --brand: #0a6e55;
+  --brand-strong: #075a45;
   --brand-ink: #ffffff;
   --brand-soft: #e6f1ee;
-  --brand-ring: rgba(10, 107, 90, 0.26);
-  --accent: #0a6b5a;
+  --brand-ring: rgba(10, 110, 85, 0.26);
+  --accent: #0a6e55;
 
   /* Dark navigation rail */
   --nav-bg: #13161b;
