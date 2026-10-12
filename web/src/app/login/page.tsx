@@ -5,6 +5,16 @@ import { supabase } from "@/lib/supabase";
 import { Alert, Button, Field, Input } from "@/components/ui";
 import { Logo } from "@/components/logo";
 
+// Demo accounts for quick role-based sign-in (remove before production go-live).
+const DEMO: [string, string, string][] = [
+  ["Admin", "auditor@promisefertility.in", "AuditPass2026"],
+  ["Doctor", "doctor@promisefertility.in", "Promise@2026"],
+  ["Nurse", "nurse@promisefertility.in", "Promise@2026"],
+  ["Embryologist", "embryologist@promisefertility.in", "Promise@2026"],
+  ["Front Desk", "frontdesk@promisefertility.in", "Promise@2026"],
+  ["Billing", "billing@promisefertility.in", "Promise@2026"],
+];
+
 export default function Login() {
   const router = useRouter();
   const [mode, setMode] = useState<"in" | "up">("in");
@@ -27,6 +37,13 @@ export default function Login() {
       else if (data.session) router.replace("/");
       else setInfo("Account created. Check your email to confirm, then sign in.");
     }
+    setBusy(false);
+  }
+
+  async function quick(em: string, pw: string) {
+    setErr(""); setInfo(""); setEmail(em); setPassword(pw); setBusy(true);
+    const { error } = await supabase.auth.signInWithPassword({ email: em, password: pw });
+    if (error) setErr(error.message); else router.replace("/");
     setBusy(false);
   }
 
@@ -70,6 +87,20 @@ export default function Login() {
             {mode === "in" ? "First time here? Create an account" : "Already have an account? Sign in"}
           </button>
           {mode === "up" && <p className="mt-5 rounded-[10px] border border-line bg-surface-2 p-3 text-[12.5px] leading-relaxed text-muted">The first account becomes the administrator. Later accounts start as Front Desk until an admin assigns a role.</p>}
+
+          {mode === "in" && (
+            <div className="mt-8">
+              <div className="mb-3 flex items-center gap-3 text-[11.5px] font-semibold uppercase tracking-[0.08em] text-faint">
+                <span className="h-px flex-1 bg-line" />Quick demo access<span className="h-px flex-1 bg-line" />
+              </div>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                {DEMO.map(([label, em, pw]) => (
+                  <Button key={label} type="button" size="sm" disabled={busy} onClick={() => quick(em, pw)} className="justify-center">{label}</Button>
+                ))}
+              </div>
+              <p className="mt-3 text-center text-[11.5px] text-faint">One-tap sign-in as each role. Demo only — remove before go-live.</p>
+            </div>
+          )}
         </form>
       </div>
     </div>
