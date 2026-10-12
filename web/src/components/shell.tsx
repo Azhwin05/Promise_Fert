@@ -6,7 +6,7 @@ import { ChevronRight, Home, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search
 import { ALL_ITEMS, SECTIONS, iconFor, sectionVisible, visibleItems, type Item } from "@/lib/sections";
 import { useAuth } from "@/lib/auth";
 import { cx, ToastProvider } from "./ui";
-import { Logo, Mark } from "./logo";
+import { LogoWhite, Mark } from "./logo";
 
 type Tab = { href: string; label: string };
 type WS = { setTitle: (t: string) => void };
@@ -153,7 +153,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
   );
 
   const brandBlock = (
-    <Link href="/" className="block px-4 pb-3 pt-4 text-white"><Logo /></Link>
+    <Link href="/" className="block px-4 pb-2 pt-4"><LogoWhite className="h-11" /></Link>
   );
 
   const sidebar = (

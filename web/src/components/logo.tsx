@@ -10,6 +10,11 @@ const EMBLEM =
   "M41 63 C48 77 72 77 79 63 C72 70 48 70 41 63 Z " + // inner cradling hand
   "M60 43 m-8 0 a8 8 0 1 0 16 0 a8 8 0 1 0 -16 0 Z";  // cradled life
 
+/** Official Promise Fertility logo (white variant) — for dark surfaces. */
+export function LogoWhite({ className }: { className?: string }) {
+  return <img src="/logo-white.png" alt="Promise Fertility Center" className={cx("w-auto object-contain", className)} />;
+}
+
 export function Mark({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 120 120" className={className} fill="currentColor" role="img" aria-label="Promise Fertility">
