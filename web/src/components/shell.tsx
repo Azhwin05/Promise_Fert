@@ -186,18 +186,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
   return (
     <WSCtx.Provider value={{ setTitle }}>
       <ToastProvider>
-        <div className="flex min-h-screen">
-          <aside className={cx("no-print sticky top-0 hidden h-screen shrink-0 lg:block", collapsed ? "w-[4.75rem]" : "w-[16.5rem]")}>
+        <div className="min-h-screen">
+          <aside className={cx("no-print fixed inset-y-0 left-0 z-40 hidden lg:block", collapsed ? "w-[4.75rem]" : "w-[16.5rem]")}>
             {collapsed ? rail : sidebar}
           </aside>
           {drawer && (
-            <div className="no-print fixed inset-0 z-40 lg:hidden" onClick={() => setDrawer(false)}>
+            <div className="no-print fixed inset-0 z-50 lg:hidden" onClick={() => setDrawer(false)}>
               <div className="fade absolute inset-0 bg-ink/50 backdrop-blur-[2px]" />
               <aside className="slideL absolute inset-y-0 left-0 w-[17rem] max-w-[86vw] shadow-[var(--shadow-lg)]" onClick={(e) => e.stopPropagation()}>{sidebar}</aside>
             </div>
           )}
 
-          <div className="flex min-w-0 flex-1 flex-col">
+          <div className={cx("flex min-h-screen min-w-0 flex-col transition-[padding] duration-200", collapsed ? "lg:pl-[4.75rem]" : "lg:pl-[16.5rem]")}>
             <header className="no-print sticky top-0 z-30 flex items-center gap-2 border-b border-line bg-surface/80 px-3 py-2.5 backdrop-blur-xl" style={{ paddingTop: "max(.625rem, env(safe-area-inset-top))" }}>
               <button aria-label="Menu" className="grid size-11 place-items-center rounded-[10px] text-muted hover:bg-black/[.05] hover:text-ink lg:hidden" onClick={() => setDrawer(true)}><Menu size={22} /></button>
               <button aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"} className="hidden size-11 place-items-center rounded-[10px] text-muted hover:bg-black/[.05] hover:text-ink lg:grid"

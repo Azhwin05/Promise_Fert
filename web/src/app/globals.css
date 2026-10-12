@@ -109,7 +109,7 @@ button { cursor: pointer; }
 *::-webkit-scrollbar { width: 10px; height: 10px; }
 *::-webkit-scrollbar-thumb { background: var(--line-strong); border-radius: 999px; border: 3px solid transparent; background-clip: content-box; }
 *::-webkit-scrollbar-thumb:hover { background: var(--faint); background-clip: content-box; }
-.nav-scroll { scrollbar-color: rgba(255,255,255,0.14) transparent; }
+.nav-scroll { scrollbar-color: rgba(255,255,255,0.14) transparent; overscroll-behavior: contain; touch-action: pan-y; -webkit-overflow-scrolling: touch; }
 .nav-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.14); background-clip: content-box; }
 
 @keyframes pop { from { opacity: 0; transform: translateY(6px) scale(.995); } to { opacity: 1; transform: none; } }
