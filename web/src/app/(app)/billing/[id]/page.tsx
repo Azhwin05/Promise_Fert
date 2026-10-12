@@ -7,7 +7,7 @@ import { useTabTitle } from "@/components/shell";
 import { refresh, saveRow, useQ } from "@/lib/q";
 import { supabase } from "@/lib/supabase";
 import { useAuth } from "@/lib/auth";
-import { fmtDateTime, money } from "@/lib/util";
+import { fmtDate, fmtDateTime, money } from "@/lib/util";
 
 type Bill = { id: string; bill_no: string; kind: string; total: number; status: string; created_at: string; version: number; patients: { mrn: string; full_name: string; phone: string | null } };
 type Item = { id: string; description: string; qty: number; rate: number; amount: number };
@@ -53,6 +53,77 @@ export default function BillPage() {
 
   return (
     <>
+      {/* Printable invoice — only visible when printing */}
+      <div className="hidden text-black print:block">
+        <div className="flex items-start justify-between border-b-2 border-black pb-3">
+          <div>
+            <div className="text-[20px] font-bold tracking-tight">PROMISE FERTILITY CENTER</div>
+            <div className="text-[11px]">A Unit of Sri Kumaran Hospital</div>
+          </div>
+          <div className="text-right text-[12px]">
+            <div className="text-[16px] font-bold">BILL / INVOICE</div>
+            <div>No. {b.bill_no}</div>
+            <div>{fmtDate(b.created_at)}</div>
+          </div>
+        </div>
+        <div className="mt-3 grid grid-cols-2 gap-x-8 gap-y-1 text-[12px]">
+          <div><b>Patient:</b> {b.patients.full_name}</div>
+          <div><b>MRN:</b> {b.patients.mrn}</div>
+          <div><b>Phone:</b> {b.patients.phone ?? "-"}</div>
+          <div><b>Bill type:</b> {b.kind}</div>
+        </div>
+        <table className="mt-4 w-full border-collapse text-[12px]">
+          <thead>
+            <tr className="border-y border-black text-left">
+              <th className="py-1.5 pr-2">#</th><th>Description</th>
+              <th className="text-right">Qty</th><th className="text-right">Rate</th><th className="py-1.5 pl-2 text-right">Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {(items.data ?? []).map((it, i) => (
+              <tr key={it.id} className="border-b border-gray-300">
+                <td className="py-1.5 pr-2 align-top">{i + 1}</td>
+                <td className="align-top">{it.description}</td>
+                <td className="text-right align-top">{it.qty}</td>
+                <td className="text-right align-top">{money(it.rate)}</td>
+                <td className="py-1.5 pl-2 text-right align-top">{money(it.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+        <div className="mt-3 flex justify-end">
+          <table className="text-[12px]">
+            <tbody>
+              <tr><td className="pr-10 text-right">Total</td><td className="w-28 text-right font-bold">{money(b.total)}</td></tr>
+              <tr><td className="pr-10 text-right">Paid</td><td className="text-right">{money(paid)}</td></tr>
+              <tr className="border-t border-black"><td className="pr-10 pt-1 text-right font-bold">Balance due</td><td className="pt-1 text-right font-bold">{money(balance)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+        {(rcpts.data ?? []).length > 0 && (
+          <div className="mt-5 text-[12px]">
+            <div className="mb-1 font-bold">Payments received</div>
+            <table className="w-full border-collapse">
+              <thead><tr className="border-y border-gray-400 text-left"><th className="py-1 pr-2">Receipt</th><th>Date</th><th>Mode</th><th className="text-right">Amount</th></tr></thead>
+              <tbody>
+                {(rcpts.data ?? []).map((r) => (
+                  <tr key={r.id} className="border-b border-gray-200">
+                    <td className="py-1 pr-2">{r.receipt_no}</td><td>{fmtDate(r.created_at)}</td><td>{r.mode}</td><td className="text-right">{money(r.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <div className="mt-16 flex items-end justify-between text-[11px]">
+          <div>Status: <b>{b.status.toUpperCase()}</b></div>
+          <div className="text-center"><div className="mb-1 h-10 w-44 border-b border-black" />Authorised signatory</div>
+        </div>
+        <div className="mt-6 text-center text-[10px] text-gray-600">This is a computer-generated bill from Promise Fertility Center.</div>
+      </div>
+
+      {/* On-screen view — hidden when printing */}
+      <div className="print:hidden">
       <PageHeader title={`Bill ${b.bill_no}`} subtitle={<span>{b.patients.full_name} · {b.patients.mrn} · {fmtDateTime(b.created_at)}</span>}
         actions={<>
           <Button onClick={() => window.print()}><Printer size={16} /> Print</Button>
@@ -87,6 +158,7 @@ export default function BillPage() {
           </div>
         )}
       </Modal>
+      </div>
     </>
   );
 }
