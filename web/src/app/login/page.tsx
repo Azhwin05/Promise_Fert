@@ -52,7 +52,7 @@ export default function Login() {
       {/* Brand panel — desktop/tablet-landscape */}
       <div className="relative hidden w-[46%] max-w-2xl flex-col justify-between overflow-hidden p-12 lg:flex"
         style={{ background: "radial-gradient(900px 500px at 15% 10%, #1c2a2a, transparent 55%), linear-gradient(160deg, #14171c 0%, #0f1518 100%)" }}>
-        <LogoWhite className="h-12" />
+        <LogoWhite className="h-20 w-auto max-w-[280px]" />
         <div className="relative">
           <div className="eyebrow mb-4" style={{ color: "rgba(52,208,176,.85)" }}>IVF Hospital Information System</div>
           <h2 className="max-w-md text-[2.1rem] font-semibold leading-[1.15] tracking-tight text-white">
