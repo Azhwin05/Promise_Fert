@@ -2,12 +2,8 @@
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
-import {
-  Activity, BarChart3, Baby, CalendarDays, ClipboardList, Container, Download, FileCheck, FileText, FlaskConical, Flame,
-  HeartHandshake, Inbox, LayoutDashboard, LayoutTemplate, LogOut, Menu, MessagesSquare, Microscope, PanelLeftClose,
-  PanelLeftOpen, Pill, Receipt, ReceiptText, RefreshCw, Search, Send, Settings, Star, Stethoscope, TestTube2, Users, UserPlus, Wallet, X,
-} from "lucide-react";
-import { NAV, type NavItem } from "@/lib/nav";
+import { ChevronRight, Home, LogOut, Menu, PanelLeftClose, PanelLeftOpen, Search, Star, X } from "lucide-react";
+import { ALL_ITEMS, SECTIONS, iconFor, sectionVisible, visibleItems, type Item } from "@/lib/sections";
 import { useAuth } from "@/lib/auth";
 import { cx, ToastProvider } from "./ui";
 import { Logo, Mark } from "./logo";
@@ -21,20 +17,7 @@ export function useTabTitle(title?: string) {
   useEffect(() => { if (title) setTitle(title); }, [title, setTitle]);
 }
 
-type Icon = typeof LayoutDashboard;
-const ICONS: Record<string, Icon> = {
-  "/": LayoutDashboard, "/patients/new": UserPlus, "/registrations": ClipboardList, "/appointments": CalendarDays, "/patients": Users,
-  "/counselling": MessagesSquare, "/worklists/opu": Stethoscope, "/worklists/et": Baby, "/worklists/iui": Stethoscope, "/worklists/surgeries": Activity,
-  "/worklists/prepare-embryos": FlaskConical, "/worklists/monitor-embryos": Microscope, "/semen": TestTube2, "/worklists/vitrify": Container,
-  "/worklists/thaw": Flame, "/worklists/renew": RefreshCw, "/worklists/pgd-send": Send, "/worklists/pgd-receive": Inbox,
-  "/worklists/donor-fertilise": FlaskConical, "/worklists/donor-fertilisations": FlaskConical, "/worklists/vitrifications": Container,
-  "/worklists/vitrified-embryos": Container, "/worklists/vitrified-oocytes": Container, "/storage": Container, "/donors": HeartHandshake,
-  "/billing/new": ReceiptText, "/billing": Receipt, "/billing/receipts": Wallet, "/documents": FileText, "/templates": LayoutTemplate,
-  "/consents": FileCheck, "/inventory": Pill, "/reports": BarChart3, "/export": Download, "/settings": Settings,
-};
 const base = (href: string) => href.split("?")[0];
-const iconFor = (href: string) => ICONS[base(href)] ?? FileText;
-
 const load = <T,>(k: string, d: T): T => {
   try { const v = localStorage.getItem(k); return v ? (JSON.parse(v) as T) : d; } catch { return d; }
 };
@@ -57,20 +40,27 @@ export function Shell({ children }: { children: React.ReactNode }) {
     setCollapsed(load("pf.collapsed", false));
   }, []);
 
-  const items = useMemo(() => NAV.flatMap((g) => g.items).filter((i) => !i.roles || can(...i.roles)), [can]);
+  const items = useMemo(() => ALL_ITEMS.filter((i) => !i.roles || can(...i.roles)), [can]);
   const byHref = useMemo(() => new Map(items.map((i) => [base(i.href), i])), [items]);
+  const sections = useMemo(() => SECTIONS.filter((s) => sectionVisible(s, can)), [can]);
+
+  // Friendly label for the open-workspace tab
+  const labelFor = useCallback((p: string) => {
+    if (p === "/") return "Home";
+    if (p === "/dashboard") return "IVF Dashboard";
+    if (p.startsWith("/s/")) return SECTIONS.find((s) => s.key === p.split("/")[2])?.title ?? "Section";
+    return byHref.get(p)?.label ?? (p.split("/").filter(Boolean).map((x) => x[0].toUpperCase() + x.slice(1)).join(" ") || "Page");
+  }, [byHref]);
 
   useEffect(() => {
     if (path === "/login") return;
-    const known = byHref.get(path)?.label;
-    const label = known ?? (path.split("/").filter(Boolean).map((s) => s[0].toUpperCase() + s.slice(1)).join(" ") || "Home");
     setTabs((t) => {
       if (t.some((x) => x.href === path)) return t;
-      const n = [...t, { href: path, label: path === "/" ? "IVF Dashboard" : label }].slice(-8);
+      const n = [...t, { href: path, label: labelFor(path) }].slice(-8);
       save("pf.tabs", n); return n;
     });
     setDrawer(false);
-  }, [path, byHref]);
+  }, [path, labelFor]);
 
   const setTitle = useCallback((title: string) => {
     setTabs((t) => { const n = t.map((x) => (x.href === path ? { ...x, label: title } : x)); save("pf.tabs", n); return n; });
@@ -83,39 +73,41 @@ export function Shell({ children }: { children: React.ReactNode }) {
   };
   const toggleFav = (href: string) => setFavs((f) => { const n = f.includes(href) ? f.filter((x) => x !== href) : [...f, href]; save("pf.favs", n); return n; });
 
-  // Query-aware active state: the single best-matching nav item wins, so items that share a
-  // path but differ by query (e.g. Settings vs Setup) never both highlight.
+  // Query-aware active for individual tool links (favourites / search results)
   const activeHref = useMemo(() => {
     let best: string | null = null, bestScore = -1;
     for (const i of items) {
       const [b, qs] = i.href.split("?");
-      const pathOk = b === "/" ? path === "/" : path === b || path.startsWith(b + "/");
-      if (!pathOk) continue;
+      if (!(b === "/" ? path === "/" : path === b || path.startsWith(b + "/"))) continue;
       let score = 1;
-      if (qs) {
-        const params = new URLSearchParams(qs);
-        let ok = true;
-        params.forEach((v, k) => { if (sp.get(k) !== v) ok = false; });
-        if (!ok) continue;
-        score = 1 + Array.from(params.keys()).length;
-      }
+      if (qs) { const pr = new URLSearchParams(qs); let ok = true; pr.forEach((v, k) => { if (sp.get(k) !== v) ok = false; }); if (!ok) continue; score = 1 + Array.from(pr.keys()).length; }
       if (score > bestScore) { bestScore = score; best = i.href; }
     }
     return best;
   }, [items, path, sp]);
-  const active = (href: string) => href === activeHref;
+
+  // Which top-level section is the current page part of
+  const activeSection = useMemo(() => {
+    if (path.startsWith("/s/")) return path.split("/")[2];
+    for (const s of SECTIONS) {
+      if (s.href && base(s.href) === path) return s.key;
+      if (s.items.some((i) => { const b = base(i.href); return b === "/" ? path === "/" : path === b || path.startsWith(b + "/"); })) return s.key;
+    }
+    return null;
+  }, [path]);
+
   const fl = filter.trim().toLowerCase();
 
-  const navItem = (i: NavItem, keyPrefix = "") => {
+  const toolRow = (i: Item, keyPrefix = "") => {
     const Ico = iconFor(i.href);
-    const on = active(i.href);
+    const on = i.href === activeHref;
     const fav = favs.includes(i.href);
     return (
       <li key={keyPrefix + i.label} className="group relative flex items-center">
         <Link href={i.href} aria-current={on ? "page" : undefined}
           className={cx("flex min-h-[40px] flex-1 items-center gap-3 rounded-[9px] pl-2.5 pr-9 text-[13.5px] leading-tight transition-colors",
             on ? "bg-[var(--nav-active)] font-medium text-white" : "text-[color:var(--nav-ink)] hover:bg-[var(--nav-hover)] hover:text-white")}>
-          <Ico size={17.5} className={cx("shrink-0 transition-colors", on ? "text-[color:var(--nav-accent)]" : "text-[color:var(--nav-muted)] group-hover:text-white/80")} />
+          <Ico size={17} className={cx("shrink-0", on ? "text-[color:var(--nav-accent)]" : "text-[color:var(--nav-muted)] group-hover:text-white/80")} />
           <span className="truncate">{i.label}</span>
           {on && <span className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-r-full bg-[color:var(--nav-accent)]" />}
         </Link>
@@ -128,10 +120,40 @@ export function Shell({ children }: { children: React.ReactNode }) {
     );
   };
 
+  const sectionRow = (s: (typeof SECTIONS)[number]) => {
+    const Ico = s.icon;
+    const on = activeSection === s.key;
+    const href = s.href ?? `/s/${s.key}`;
+    const count = s.href ? 0 : visibleItems(s, can).length;
+    return (
+      <li key={s.key} className="relative">
+        <Link href={href} aria-current={on ? "page" : undefined}
+          className={cx("flex min-h-[44px] items-center gap-3 rounded-[10px] pl-2.5 pr-2 text-[14px] leading-tight transition-colors",
+            on ? "bg-[var(--nav-active)] font-medium text-white" : "text-[color:var(--nav-ink)] hover:bg-[var(--nav-hover)] hover:text-white")}>
+          <Ico size={18} className={cx("shrink-0", on ? "text-[color:var(--nav-accent)]" : "text-[color:var(--nav-muted)]")} />
+          <span className="flex-1 truncate">{s.title}</span>
+          {count > 0 && <span className="rounded-full bg-white/10 px-1.5 text-[11px] font-semibold text-[color:var(--nav-muted)]">{count}</span>}
+          {!s.href && <ChevronRight size={15} className="text-[color:var(--nav-muted)]" />}
+          {on && <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-r-full bg-[color:var(--nav-accent)]" />}
+        </Link>
+      </li>
+    );
+  };
+
+  const homeRow = (
+    <li className="relative">
+      <Link href="/" aria-current={path === "/" ? "page" : undefined}
+        className={cx("flex min-h-[44px] items-center gap-3 rounded-[10px] pl-2.5 pr-2 text-[14px] font-medium transition-colors",
+          path === "/" ? "bg-[var(--nav-active)] text-white" : "text-[color:var(--nav-ink)] hover:bg-[var(--nav-hover)] hover:text-white")}>
+        <Home size={18} className={path === "/" ? "text-[color:var(--nav-accent)]" : "text-[color:var(--nav-muted)]"} />
+        <span className="flex-1">Home</span>
+        {path === "/" && <span className="absolute left-0 top-1/2 h-5 w-[2.5px] -translate-y-1/2 rounded-r-full bg-[color:var(--nav-accent)]" />}
+      </Link>
+    </li>
+  );
+
   const brandBlock = (
-    <Link href="/" className="block px-4 pb-3 pt-4 text-white">
-      <Logo />
-    </Link>
+    <Link href="/" className="block px-4 pb-3 pt-4 text-white"><Logo /></Link>
   );
 
   const sidebar = (
@@ -140,20 +162,21 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <div className="px-3 pb-2">
         <div className="relative">
           <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[color:var(--nav-muted)]" />
-          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Find a worklist…" aria-label="Find a worklist"
-            className="min-h-9 w-full rounded-[9px] border border-[var(--nav-line)] bg-[var(--nav-surface)] pl-8.5 pr-3 text-[13px] text-white placeholder:text-[color:var(--nav-muted)] focus:border-[color:var(--nav-accent)] focus:outline-none" style={{ paddingLeft: "2.1rem" }} />
+          <input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Jump to a tool…" aria-label="Find a tool"
+            className="min-h-9 w-full rounded-[9px] border border-[var(--nav-line)] bg-[var(--nav-surface)] pr-3 text-[13px] text-white placeholder:text-[color:var(--nav-muted)] focus:border-[color:var(--nav-accent)] focus:outline-none" style={{ paddingLeft: "2.1rem" }} />
         </div>
       </div>
       <div className="nav-scroll flex-1 overflow-y-auto px-2.5 pb-6">
         {fl ? (
-          <ul className="space-y-0.5">{items.filter((i) => i.label.toLowerCase().includes(fl)).map((i) => navItem(i))}</ul>
+          <ul className="space-y-0.5">{items.filter((i) => i.label.toLowerCase().includes(fl)).map((i) => toolRow(i))}</ul>
         ) : (
           <>
-            {favs.length > 0 && <Group title="Favourites">{items.filter((i) => favs.includes(i.href)).map((i) => navItem(i, "f"))}</Group>}
-            {NAV.map((g) => {
-              const vis = g.items.filter((i) => !i.roles || can(...i.roles));
-              return vis.length ? <Group key={g.title} title={g.title}>{vis.map((i) => navItem(i))}</Group> : null;
-            })}
+            <ul className="space-y-0.5">{homeRow}</ul>
+            {favs.length > 0 && <Group title="Favourites">{items.filter((i) => favs.includes(i.href)).map((i) => toolRow(i, "f"))}</Group>}
+            <div className="mt-4">
+              <div className="px-2.5 pb-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-[color:var(--nav-head)]">Modules</div>
+              <ul className="space-y-0.5">{sections.map((s) => sectionRow(s))}</ul>
+            </div>
           </>
         )}
       </div>
@@ -165,16 +188,18 @@ export function Shell({ children }: { children: React.ReactNode }) {
       <Link href="/" className="mb-3 text-white"><Mark className="size-9" /></Link>
       <div className="nav-scroll flex-1 overflow-y-auto">
         <ul className="flex flex-col items-center gap-1">
-          {items.map((i) => {
-            const Ico = iconFor(i.href); const on = active(i.href);
+          <li className="group relative">
+            <Link href="/" title="Home" aria-label="Home" className={cx("grid size-11 place-items-center rounded-[11px] transition-colors", path === "/" ? "bg-[var(--nav-active)] text-white" : "text-[color:var(--nav-muted)] hover:bg-[var(--nav-hover)] hover:text-white")}><Home size={19} className={path === "/" ? "text-[color:var(--nav-accent)]" : ""} /></Link>
+            <Tip>Home</Tip>
+          </li>
+          {sections.map((s) => {
+            const Ico = s.icon; const on = activeSection === s.key; const href = s.href ?? `/s/${s.key}`;
             return (
-              <li key={i.label} className="group relative">
-                <Link href={i.href} title={i.label} aria-label={i.label}
-                  className={cx("grid size-11 place-items-center rounded-[11px] transition-colors",
-                    on ? "bg-[var(--nav-active)] text-white" : "text-[color:var(--nav-muted)] hover:bg-[var(--nav-hover)] hover:text-white")}>
+              <li key={s.key} className="group relative">
+                <Link href={href} title={s.title} aria-label={s.title} className={cx("grid size-11 place-items-center rounded-[11px] transition-colors", on ? "bg-[var(--nav-active)] text-white" : "text-[color:var(--nav-muted)] hover:bg-[var(--nav-hover)] hover:text-white")}>
                   <Ico size={19} className={on ? "text-[color:var(--nav-accent)]" : ""} />
                 </Link>
-                <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{i.label}</span>
+                <Tip>{s.title}</Tip>
               </li>
             );
           })}
@@ -253,3 +278,7 @@ function Group({ title, children }: { title: string; children: React.ReactNode }
     </div>
   );
 }
+
+const Tip = ({ children }: { children: React.ReactNode }) => (
+  <span className="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1 text-xs font-medium text-white opacity-0 shadow-lg transition-opacity group-hover:opacity-100">{children}</span>
+);
