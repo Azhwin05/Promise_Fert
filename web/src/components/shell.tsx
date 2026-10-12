@@ -49,12 +49,11 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
   const [filter, setFilter] = useState("");
   const [favs, setFavs] = useState<string[]>([]);
-  const [recent, setRecent] = useState<string[]>([]);
   const [tabs, setTabs] = useState<Tab[]>([]);
   const [q, setQ] = useState("");
 
   useEffect(() => {
-    setFavs(load("pf.favs", [])); setRecent(load("pf.recent", [])); setTabs(load("pf.tabs", []));
+    setFavs(load("pf.favs", [])); setTabs(load("pf.tabs", []));
     setCollapsed(load("pf.collapsed", false));
   }, []);
 
@@ -70,7 +69,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
       const n = [...t, { href: path, label: path === "/" ? "IVF Dashboard" : label }].slice(-8);
       save("pf.tabs", n); return n;
     });
-    if (known) setRecent((r) => { const n = [path, ...r.filter((x) => x !== path)].slice(0, 6); save("pf.recent", n); return n; });
     setDrawer(false);
   }, [path, byHref]);
 
@@ -152,7 +150,6 @@ export function Shell({ children }: { children: React.ReactNode }) {
         ) : (
           <>
             {favs.length > 0 && <Group title="Favourites">{items.filter((i) => favs.includes(i.href)).map((i) => navItem(i, "f"))}</Group>}
-            {recent.length > 0 && <Group title="Recent">{recent.map((h) => byHref.get(h)).filter(Boolean).slice(0, 4).map((i) => navItem(i!, "r"))}</Group>}
             {NAV.map((g) => {
               const vis = g.items.filter((i) => !i.roles || can(...i.roles));
               return vis.length ? <Group key={g.title} title={g.title}>{vis.map((i) => navItem(i))}</Group> : null;
